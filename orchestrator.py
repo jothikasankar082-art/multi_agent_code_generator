@@ -24,7 +24,7 @@ class Orchestrator:
         print(Fore.CYAN + "="*60)
 
         # ✅ STEP 1: Set API Key (Direct - no .env issues)
-        api_key = "AIzaSyD7qTdMAn7kMrIQRFG69b9CYhbwc9g1GVQ"
+        api_key = "OPENAI_API_KEY"
         print(Fore.GREEN + "✅ API Key loaded successfully")
 
         # ✅ STEP 2: Configure Gemini
