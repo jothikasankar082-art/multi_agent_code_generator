@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
     orchestrator = Orchestrator()
 
-    user_request = input("\n💡 Enter what you want to build: ")
+user_request = input("\n💡 Enter what you want to build: ")
 
     results = orchestrator.run(user_request)
 
