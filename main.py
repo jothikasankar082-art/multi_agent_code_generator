@@ -163,5 +163,4 @@ def main():
 
 # This is the standard Python way to run the main function
 # It only runs when you execute this file directly (not when imported)
-if __name__ == "__main__":
-    main()
+
