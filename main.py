@@ -8,7 +8,8 @@
 #   python main.py
 # =========================================
 
-
+from colorama import Fore, Style, init
+from orchestrator import Orchestrator
 
 # Initialize colored terminal output
 init(autoreset=True)
