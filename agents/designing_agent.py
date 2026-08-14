@@ -1,64 +1,26 @@
-# agents/designing_agent.py
-# =========================================
-# DESIGNING AGENT
-# =========================================
+from groq import Groq
 
 class DesigningAgent:
-    """
-    The Designing Agent creates software architecture
-    from the given plan.
-    """
-
-    def __init__(self, model):
-        self.model = model
+    def __init__(self, client: Groq, model_name: str):
+        self.client = client
+        self.model_name = model_name
         self.name = "Designing Agent"
 
-        self.system_prompt = """You are an expert software architect agent.
-Your ONLY job is to design the software architecture.
-
-When given a plan, you must:
-1. Define folder/file structure
-2. Define classes and purpose
-3. Define main functions
-4. Explain data flow
-
-Format:
-
-ARCHITECTURE:
-
-FOLDER STRUCTURE:
-project/
-├── file1.py
-├── file2.py
-
-CLASSES:
-Class: Name
-- Purpose:
-- Methods:
-
-FUNCTIONS:
-def function():
-
-DATA FLOW:
-Explain flow
-
-Do NOT write full code.
-"""
-
     def run(self, user_request: str, plan: str) -> str:
-
         print(f"\n  [{self.name}] Designing architecture...")
-
-        prompt = f"""
-{self.system_prompt}
-
-Original Request:
-{user_request}
-
-Development Plan:
-{plan}
-"""
-
-        response = self.model.generate_content(prompt)
-
-        return response.text
+        response = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a software architect. Design folder structures, classes, and function signatures based on a plan. Do NOT write full implementation code."
+                },
+                {
+                    "role": "user",
+                    "content": f"Request: {user_request}\n\nPlan:\n{plan}\n\nDesign the folder structure, classes, and function signatures."
+                }
+            ],
+            temperature=0.3,
+            max_tokens=2048,
+        )
+        return response.choices[0].message.content

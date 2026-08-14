@@ -1,35 +1,26 @@
-# agents/testing_agent.py
-# =========================================
-# TESTING AGENT
-# =========================================
+from groq import Groq
 
 class TestingAgent:
-
-    def __init__(self, model):
-        self.model = model
+    def __init__(self, client: Groq, model_name: str):
+        self.client = client
+        self.model_name = model_name
         self.name = "Testing Agent"
 
     def run(self, user_request: str, code: str) -> str:
-
-        print(f"\n  [{self.name}] Testing code...")
-
-        prompt = f"""
-You are a Testing Agent.
-
-Check the given Python code.
-
-USER REQUEST:
-{user_request}
-
-CODE:
-{code}
-
-Tasks:
-1. Find bugs
-2. Suggest improvements
-3. Provide corrected code if needed
-"""
-
-        response = self.model.generate_content(prompt)
-
-        return response.text
+        print(f"\n  [{self.name}] Reviewing code and writing tests...")
+        response = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a QA engineer. Review Python code for bugs and improvements. Write pytest test cases. Give a final verdict: Excellent, Good, or Needs Work."
+                },
+                {
+                    "role": "user",
+                    "content": f"Request: {user_request}\n\nCode:\n{code}\n\nReview the code and write pytest test cases."
+                }
+            ],
+            temperature=0.3,
+            max_tokens=2048,
+        )
+        return response.choices[0].message.content

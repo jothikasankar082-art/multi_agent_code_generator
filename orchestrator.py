@@ -1,116 +1,86 @@
-# =========================================
-# ORCHESTRATOR (FINAL CORRECT VERSION)
-# =========================================
-
-import google.generativeai as genai
+import os
+from dotenv import load_dotenv
 from colorama import Fore, Style, init
+from groq import Groq
 
-# Import agents
 from agents.planning_agent import PlanningAgent
 from agents.designing_agent import DesigningAgent
 from agents.creating_agent import CreatingAgent
 from agents.testing_agent import TestingAgent
 
-# Initialize colorama
 init(autoreset=True)
-
+load_dotenv()
 
 class Orchestrator:
 
     def __init__(self):
-
         print(Fore.CYAN + "\n" + "="*60)
         print(Fore.CYAN + "   Multi-Agent Code Generator - Starting Up...")
         print(Fore.CYAN + "="*60)
 
-        # ✅ STEP 1: Set API Key (Direct - no .env issues)
-        api_key = "OPENAI_API_KEY"
-        print(Fore.GREEN + "✅ API Key loaded successfully")
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key or api_key == "your_groq_api_key_here":
+            print(Fore.RED + "\n❌ ERROR: Groq API key missing!")
+            print(Fore.YELLOW + "1. Go to https://console.groq.com")
+            print(Fore.YELLOW + "2. Click API Keys → Create API Key")
+            print(Fore.YELLOW + "3. Paste it in your .env file as GROQ_API_KEY=your_key")
+            raise ValueError("Set GROQ_API_KEY in your .env file")
 
-        # ✅ STEP 2: Configure Gemini
-        genai.configure(api_key=api_key)
+        print(Fore.GREEN + "✅ Groq API key loaded")
 
-        # ✅ STEP 3: Create model
-        self.model = genai.GenerativeModel("gemini-2.0-flash")
-        print(Fore.GREEN + "✅ Gemini model loaded")
+        self.client = Groq(api_key=api_key)
+        self.model_name = "llama-3.3-70b-versatile"
+        print(Fore.GREEN + f"✅ Model ready: {self.model_name}")
 
-        # ✅ STEP 4: Initialize all agents
-        self.planning_agent  = PlanningAgent(self.model)
-        self.designing_agent = DesigningAgent(self.model)
-        self.creating_agent  = CreatingAgent(self.model)
-        self.testing_agent   = TestingAgent(self.model)
+        self.planning_agent  = PlanningAgent(self.client, self.model_name)
+        self.designing_agent = DesigningAgent(self.client, self.model_name)
+        self.creating_agent  = CreatingAgent(self.client, self.model_name)
+        self.testing_agent   = TestingAgent(self.client, self.model_name)
+        print(Fore.GREEN + "✅ All 4 agents initialized")
 
-        print(Fore.GREEN + "✅ All agents initialized")
-
-        # Store results
         self.results = {}
 
-    def run(self, user_request):
+    def run(self, user_request: str) -> dict:
+        print(Fore.CYAN + f"\n  Processing: {user_request[:55]}...")
+        print(Fore.CYAN + "="*60)
 
-        print(Fore.CYAN + "\nProcessing...\n")
-
-        # Step 1: Planning
-        print(Fore.YELLOW + "🔹 Planning...")
+        print(Fore.YELLOW + "\n🔍 STEP 1/4 – Planning Agent...")
         self.results["plan"] = self.planning_agent.run(user_request)
+        print(Fore.GREEN + "  ✅ Plan ready")
 
-        # Step 2: Designing
-        print(Fore.YELLOW + "🔹 Designing...")
-        self.results["design"] = self.designing_agent.run(
-            user_request,
-            self.results["plan"]
-        )
+        print(Fore.YELLOW + "\n📐 STEP 2/4 – Designing Agent...")
+        self.results["design"] = self.designing_agent.run(user_request, self.results["plan"])
+        print(Fore.GREEN + "  ✅ Design ready")
 
-        # Step 3: Creating
-        print(Fore.YELLOW + "🔹 Creating...")
-        self.results["code"] = self.creating_agent.run(
-            user_request,
-            self.results["plan"],
-            self.results["design"]
-        )
+        print(Fore.YELLOW + "\n💻 STEP 3/4 – Creating Agent...")
+        self.results["code"] = self.creating_agent.run(user_request, self.results["plan"], self.results["design"])
+        print(Fore.GREEN + "  ✅ Code ready")
 
-        # Step 4: Testing
-        print(Fore.YELLOW + "🔹 Testing...")
-        self.results["tests"] = self.testing_agent.run(
-            user_request,
-            self.results["code"]
-        )
+        print(Fore.YELLOW + "\n🧪 STEP 4/4 – Testing Agent...")
+        self.results["tests"] = self.testing_agent.run(user_request, self.results["code"])
+        print(Fore.GREEN + "  ✅ Tests ready")
 
-        print(Fore.GREEN + "\n✅ All steps completed!")
-
+        print(Fore.GREEN + "\n🎉 All agents completed!")
         return self.results
 
-    def display_results(self, results):
+    def display_results(self, results: dict):
+        sections = [
+            ("📋 PLAN",   results["plan"],   Fore.YELLOW),
+            ("📐 DESIGN", results["design"], Fore.BLUE),
+            ("💻 CODE",   results["code"],   Fore.MAGENTA),
+            ("🧪 TESTS",  results["tests"],  Fore.CYAN),
+        ]
+        for title, content, color in sections:
+            print(color + "\n" + "="*60)
+            print(color + f"  {title}")
+            print(color + "="*60)
+            print(Style.RESET_ALL + content)
+        print(Fore.GREEN + "\n✅ Done!")
 
-        print("\n" + "="*60)
-
-        print("\n📋 PLAN:\n", results["plan"])
-        print("\n📐 DESIGN:\n", results["design"])
-        print("\n💻 CODE:\n", results["code"])
-        print("\n🧪 TEST:\n", results["tests"])
-
-        print("\n" + "="*60)
-
-    def save_results(self, results, filename="output.txt"):
-
-        with open(filename, "w", encoding="utf-8") as f:
-            for key, value in results.items():
-                f.write(f"\n==== {key.upper()} ====\n")
-                f.write(value + "\n")
-
-        print(Fore.GREEN + f"\n💾 Saved to {filename}")
-
-
-# =========================================
-# MAIN
-# =========================================
-if __name__ == "__main__":
-
-    orchestrator = Orchestrator()
-
-    user_request = input("\n💡 Enter what you want to build: ")
-
-    results = orchestrator.run(user_request)
-
-    orchestrator.display_results(results)
-
-    orchestrator.save_results(results)
+    def save_results(self, results: dict, filename: str = "output"):
+        path = f"{filename}.txt"
+        with open(path, "w", encoding="utf-8") as f:
+            for key, val in results.items():
+                f.write(f"\n{'='*60}\n{key.upper()}\n{'='*60}\n{val}\n")
+        print(Fore.GREEN + f"\n💾 Saved to: {path}")
+        return path
