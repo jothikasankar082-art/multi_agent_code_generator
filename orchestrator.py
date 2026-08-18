@@ -77,7 +77,6 @@ class Orchestrator:
             print(Style.RESET_ALL + content)
         print(Fore.GREEN + "\n✅ Done!")
 
-<<<<<<< HEAD
     def save_results(self, results: dict, filename: str = "output"):
         path = f"{filename}.txt"
         with open(path, "w", encoding="utf-8") as f:
@@ -85,38 +84,3 @@ class Orchestrator:
                 f.write(f"\n{'='*60}\n{key.upper()}\n{'='*60}\n{val}\n")
         print(Fore.GREEN + f"\n💾 Saved to: {path}")
         return path
-=======
-        print("\n" + "="*60)
-
-        print("\n📋 PLAN:\n", results["plan"])
-        print("\n📐 DESIGN:\n", results["design"])
-        print("\n💻 CODE:\n", results["code"])
-        print("\n🧪 TEST:\n", results["tests"])
-
-        print("\n" + "="*60)
-
-    def save_results(self, results, filename="output.txt"):
-
-        with open(filename, "w", encoding="utf-8") as f:
-            for key, value in results.items():
-                f.write(f"\n==== {key.upper()} ====\n")
-                f.write(value + "\n")
-
-        print(Fore.GREEN + f"\n💾 Saved to {filename}")
-
-
-# =========================================
-# MAIN
-# =========================================
-if __name__ == "__main__":
-
-    orchestrator = Orchestrator()
-
-user_request = input("\n💡 Enter what you want to build: ")
-
-    results = orchestrator.run(user_request)
-
-    orchestrator.display_results(results)
-
-    orchestrator.save_results(results)
->>>>>>> 46a84cd78bdc781b4258535d7598d8df5e92e12a
