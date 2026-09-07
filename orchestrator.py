@@ -29,7 +29,7 @@ class Orchestrator:
         print(Fore.GREEN + "✅ Groq API key loaded")
 
         self.client = Groq(api_key=api_key)
-        self.model_name = "llama-3.3-70b-versatile"
+        self.model_name = "openai/gpt-oss-120b"
         print(Fore.GREEN + f"✅ Model ready: {self.model_name}")
 
         self.planning_agent  = PlanningAgent(self.client, self.model_name)
