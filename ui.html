@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Agent Code Generator</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#1e1e1e;--s1:#252525;--s2:#2d2d2d;--s3:#333333;
+  --border:#3a3a3a;--border2:#444444;
+  --text:#f0f0f0;--muted:#888888;--dim:#555555;
+  --v1:#ff2d6b;--v2:#00f5a0;--v2b:#00b377;
+  --v3:#ffb800;--v4:#ff6b35;--v5:#7b61ff;
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOPBAR */
+.topbar{height:52px;background:var(--s1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:9px}
+.logo-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--v1),var(--v5));display:flex;align-items:center;justify-content:center;font-size:14px}
+.logo-text{font-family:var(--mono);font-weight:600;font-size:13px}
+.pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;font-family:var(--mono)}
+.pill.pink{background:rgba(255,45,107,0.12);color:var(--v1);border:1px solid rgba(255,45,107,0.25)}
+.pill.green{background:rgba(0,245,160,0.1);color:var(--v2);border:1px solid rgba(0,245,160,0.2)}
+.conn-status{margin-left:auto;font-size:11px;font-family:var(--mono);color:var(--muted);display:flex;align-items:center;gap:6px}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--v2b)}
+
+/* LAYOUT */
+.layout{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:280px;background:var(--s1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.sb-sec{padding:16px;border-bottom:1px solid var(--border)}
+.sb-lbl{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;font-family:var(--mono)}
+
+/* Dropdown */
+.dd-wrap{position:relative}
+.dd-wrap::after{content:'';position:absolute;right:12px;top:50%;transform:translateY(-50%);width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:4px solid var(--muted);pointer-events:none}
+.dd-flag{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none}
+select{width:100%;background:var(--s2);border:1px solid var(--border2);color:var(--text);padding:10px 36px 10px 40px;border-radius:8px;font-family:var(--sans);font-size:13px;appearance:none;cursor:pointer;outline:none;transition:border-color 0.2s}
+select:hover{border-color:var(--dim)}
+select:focus{border-color:var(--v1);box-shadow:0 0 0 3px rgba(255,45,107,0.1)}
+select option{background:#2d2d2d;color:var(--text)}
+
+/* Examples */
+.ex-btn{width:100%;background:var(--s2);border:1px solid var(--border);color:var(--muted);padding:8px 11px;border-radius:7px;font-size:12px;cursor:pointer;text-align:left;margin-bottom:6px;transition:all 0.16s;font-family:var(--sans);line-height:1.4}
+.ex-btn:hover{border-color:var(--v1);color:var(--text);background:rgba(255,45,107,0.05)}
+
+/* Prompt */
+.sb-prompt{padding:16px;flex:1;display:flex;flex-direction:column;gap:10px}
+textarea{flex:1;min-height:120px;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:12px;border-radius:8px;font-family:var(--sans);font-size:13px;line-height:1.6;resize:none;outline:none;transition:border-color 0.2s}
+textarea::placeholder{color:var(--muted)}
+textarea:focus{border-color:var(--v1);box-shadow:0 0 0 3px rgba(255,45,107,0.08)}
+
+/* Generate button */
+.btn-gen{width:100%;padding:12px;background:linear-gradient(135deg,var(--v1),var(--v5));border:none;border-radius:9px;color:#fff;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.2s,transform 0.1s}
+.btn-gen:hover{opacity:0.88}
+.btn-gen:active{transform:scale(0.98)}
+.btn-gen:disabled{opacity:0.3;cursor:not-allowed}
+.spin{width:15px;height:15px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite;display:none}
+.btn-gen.loading .spin{display:block}
+.btn-gen.loading .btn-txt{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+
+/* Pipeline */
+.pipeline{background:var(--s1);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:0;overflow-x:auto;flex-shrink:0}
+.p-node{display:flex;align-items:center;gap:9px;cursor:pointer;padding:6px 10px;border-radius:8px;transition:background 0.2s}
+.p-node:hover{background:var(--s2)}
+.p-ring{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--dim);transition:all 0.3s;flex-shrink:0}
+.p-info{display:flex;flex-direction:column;gap:1px}
+.p-name{font-size:12px;font-weight:500;color:var(--muted);transition:color 0.3s;white-space:nowrap}
+.p-sub{font-size:10px;color:var(--dim);white-space:nowrap;transition:color 0.3s}
+.p-line{flex:1;min-width:24px;max-width:56px;height:1px;background:var(--border2);margin:0 4px;transition:background 0.4s}
+.p-node.active .p-ring{border-color:var(--v1);color:var(--v1);background:rgba(255,45,107,0.08);animation:pulse 1.4s infinite}
+.p-node.active .p-name{color:var(--v1)}
+.p-node.active .p-sub{color:rgba(255,45,107,0.5)}
+.p-node.done .p-ring{border-color:var(--v2);background:var(--v2b);color:#fff}
+.p-node.done .p-name{color:var(--v2)}
+.p-node.done .p-sub{color:var(--v2b)}
+.p-line.lit{background:var(--v2b)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,45,107,0.35)}50%{box-shadow:0 0 0 7px rgba(255,45,107,0)}}
+
+/* Tabs */
+.tabs{display:flex;padding:0 24px;background:var(--s1);border-bottom:1px solid var(--border);gap:2px;flex-shrink:0}
+.tab{padding:11px 16px;font-size:11px;font-weight:500;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px;transition:all 0.2s;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:-1px;white-space:nowrap;font-family:var(--mono)}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--text);border-bottom-color:var(--v1)}
+.tdot{width:6px;height:6px;border-radius:50%;background:var(--dim);flex-shrink:0}
+.tab[data-t="plan"] .tdot{background:var(--v1)}
+.tab[data-t="design"] .tdot{background:var(--v2)}
+.tab[data-t="code"] .tdot{background:var(--v3)}
+.tab[data-t="tests"] .tdot{background:var(--v4)}
+
+/* Output */
+.output{flex:1;overflow:hidden}
+.pane{display:none;height:100%;overflow-y:auto;padding:20px}
+.pane.active{display:block}
+.empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--dim)}
+.empty i{font-size:40px;opacity:0.35}
+.empty-t{font-size:14px;color:var(--muted)}
+.empty-s{font-size:12px;color:var(--dim)}
+
+/* Segment cards */
+.seg{background:var(--s1);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden}
+.seg-head{padding:13px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.seg-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.seg-title{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text)}
+.seg-tag{margin-left:auto;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;font-family:var(--mono);letter-spacing:0.5px}
+.seg-body{padding:16px;font-size:13px;line-height:1.8;color:var(--text);white-space:pre-wrap;font-family:var(--sans);font-weight:300}
+.code-wrap{margin-top:10px}
+.code-head{display:flex;align-items:center;justify-content:space-between;background:#1a1a1a;padding:8px 14px;border-radius:7px 7px 0 0;border:1px solid var(--border2);border-bottom:none}
+.code-lang-lbl{font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase}
+.copy-btn{background:var(--s3);border:1px solid var(--border2);color:var(--muted);padding:3px 9px;border-radius:5px;font-size:11px;cursor:pointer;font-family:var(--sans);transition:all 0.15s;display:flex;align-items:center;gap:4px}
+.copy-btn:hover{border-color:var(--v1);color:var(--v1)}
+.code-blk{background:#111111;border:1px solid var(--border2);border-top:none;border-radius:0 0 7px 7px;padding:14px;font-family:var(--mono);font-size:12px;line-height:1.7;overflow-x:auto;white-space:pre;color:#e0e0e0}
+.plan-seg .seg-head{border-left:3px solid var(--v1)}
+.design-seg .seg-head{border-left:3px solid var(--v2)}
+.code-seg .seg-head{border-left:3px solid var(--v3)}
+.test-seg .seg-head{border-left:3px solid var(--v4)}
+.plan-icon{background:rgba(255,45,107,0.12);color:var(--v1)}
+.design-icon{background:rgba(0,245,160,0.1);color:var(--v2)}
+.code-icon{background:rgba(255,184,0,0.1);color:var(--v3)}
+.test-icon{background:rgba(255,107,53,0.1);color:var(--v4)}
+.plan-tag{background:rgba(255,45,107,0.1);color:var(--v1)}
+.design-tag{background:rgba(0,245,160,0.08);color:var(--v2)}
+.code-tag{background:rgba(255,184,0,0.08);color:var(--v3)}
+.test-tag{background:rgba(255,107,53,0.08);color:var(--v4)}
+
+/* Status bar */
+.statusbar{height:28px;background:var(--s1);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px;font-family:var(--mono);font-size:11px;color:var(--muted);flex-shrink:0}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--v2b);flex-shrink:0}
+.sdot.busy{background:var(--v3);animation:pulse 1s infinite}
+.sdot.err{background:var(--v4)}
+.sb-right{margin-left:auto}
+.save-btn{background:transparent;border:1px solid var(--border2);color:var(--muted);padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-family:var(--mono);transition:all 0.15s;display:none;align-items:center;gap:4px}
+.save-btn:hover{border-color:var(--v2);color:var(--v2)}
+
+/* Error box */
+.err-box{background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.3);border-radius:8px;padding:14px 16px;margin-bottom:14px;color:#ff8a65;font-size:13px;font-family:var(--mono)}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-mark">⚡</div>
+    <span class="logo-text">Multi-Agent CodeGen</span>
+  </div>
+  <span class="pill pink">4 Agents</span>
+  <span class="pill green">Python Backend</span>
+  <div class="conn-status">
+    <div class="conn-dot" id="connDot"></div>
+    <span id="connTxt">Connecting...</span>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+
+    <!-- Language -->
+    <div class="sb-sec">
+      <div class="sb-lbl">Output Language</div>
+      <div class="dd-wrap">
+        <span class="dd-flag" id="ddFlag">🐍</span>
+        <select id="langSel" onchange="onLangChange(this)">
+          <optgroup label="── Popular ──">
+            <option value="python"     data-icon="🐍">Python</option>
+            <option value="javascript" data-icon="🟨">JavaScript</option>
+            <option value="typescript" data-icon="🔷">TypeScript</option>
+            <option value="java"       data-icon="☕">Java</option>
+          </optgroup>
+          <optgroup label="── Systems ──">
+            <option value="c++"        data-icon="⚙️">C++</option>
+            <option value="c"          data-icon="🔩">C</option>
+            <option value="rust"       data-icon="🦀">Rust</option>
+            <option value="go"         data-icon="🐹">Go</option>
+          </optgroup>
+          <optgroup label="── Frontend / Mobile ──">
+            <option value="react"      data-icon="⚛️">React (JSX)</option>
+            <option value="vue"        data-icon="💚">Vue.js</option>
+            <option value="swift"      data-icon="🍎">Swift</option>
+            <option value="kotlin"     data-icon="🎯">Kotlin</option>
+            <option value="dart"       data-icon="💙">Dart / Flutter</option>
+          </optgroup>
+          <optgroup label="── Backend / Other ──">
+            <option value="c#"         data-icon="🟢">C#</option>
+            <option value="php"        data-icon="🐘">PHP</option>
+            <option value="ruby"       data-icon="💎">Ruby</option>
+            <option value="scala"      data-icon="🔴">Scala</option>
+            <option value="r"          data-icon="📊">R</option>
+            <option value="bash"       data-icon="🖥️">Bash / Shell</option>
+            <option value="sql"        data-icon="🗄️">SQL</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+
+    <!-- Examples -->
+    <div class="sb-sec">
+      <div class="sb-lbl">Quick Start</div>
+      <button class="ex-btn" onclick="setEx(this)">Calculator with add, subtract, multiply, divide</button>
+      <button class="ex-btn" onclick="setEx(this)">To-do list app that saves tasks to a file</button>
+      <button class="ex-btn" onclick="setEx(this)">Student grade management system</button>
+      <button class="ex-btn" onclick="setEx(this)">Bank account with deposit and withdraw</button>
+      <button class="ex-btn" onclick="setEx(this)">Number guessing game with score tracking</button>
+    </div>
+
+    <!-- Prompt -->
+    <div class="sb-prompt">
+      <div class="sb-lbl">Your Request</div>
+      <textarea id="prompt" placeholder="Describe what you want to build...&#10;&#10;Example: Create a calculator that can add, subtract, multiply and divide two numbers"></textarea>
+      <button class="btn-gen" id="genBtn" onclick="generate()">
+        <span class="btn-txt">⚡ Generate Code</span>
+        <div class="spin"></div>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Main area -->
+  <div class="main">
+
+    <!-- Pipeline -->
+    <div class="pipeline">
+      <div class="p-node" id="n1" onclick="switchTab('plan')">
+        <div class="p-ring">1</div>
+        <div class="p-info"><div class="p-name">Planning</div><div class="p-sub">Break down task</div></div>
+      </div>
+      <div class="p-line" id="l1"></div>
+      <div class="p-node" id="n2" onclick="switchTab('design')">
+        <div class="p-ring">2</div>
+        <div class="p-info"><div class="p-name">Designing</div><div class="p-sub">Architecture</div></div>
+      </div>
+      <div class="p-line" id="l2"></div>
+      <div class="p-node" id="n3" onclick="switchTab('code')">
+        <div class="p-ring">3</div>
+        <div class="p-info"><div class="p-name">Creating</div><div class="p-sub">Write code</div></div>
+      </div>
+      <div class="p-line" id="l3"></div>
+      <div class="p-node" id="n4" onclick="switchTab('tests')">
+        <div class="p-ring">4</div>
+        <div class="p-info"><div class="p-name">Testing</div><div class="p-sub">Review &amp; test</div></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-t="plan"   onclick="switchTab('plan')"  ><span class="tdot"></span>Plan</div>
+      <div class="tab"        data-t="design" onclick="switchTab('design')" ><span class="tdot"></span>Design</div>
+      <div class="tab"        data-t="code"   onclick="switchTab('code')"  ><span class="tdot"></span>Code</div>
+      <div class="tab"        data-t="tests"  onclick="switchTab('tests')" ><span class="tdot"></span>Tests</div>
+    </div>
+
+    <!-- Output panes -->
+    <div class="output">
+      <div class="pane active" id="pane-plan">
+        <div class="empty"><i class="ti ti-clipboard-list"></i><div class="empty-t">Plan will appear here</div><div class="empty-s">Enter a request and click Generate</div></div>
+      </div>
+      <div class="pane" id="pane-design">
+        <div class="empty"><i class="ti ti-vector-triangle"></i><div class="empty-t">Architecture will appear here</div><div class="empty-s">Runs after Planning completes</div></div>
+      </div>
+      <div class="pane" id="pane-code">
+        <div class="empty"><i class="ti ti-code"></i><div class="empty-t">Generated code will appear here</div><div class="empty-s">Runs after Design completes</div></div>
+      </div>
+      <div class="pane" id="pane-tests">
+        <div class="empty"><i class="ti ti-test-pipe"></i><div class="empty-t">Test cases will appear here</div><div class="empty-s">Runs after Code completes</div></div>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="statusbar">
+      <div class="sdot" id="sdot"></div>
+      <span id="stxt">Ready — enter your request and click Generate</span>
+      <div class="sb-right">
+        <button class="save-btn" id="saveBtn" onclick="saveOutput()">💾 Save Output</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let lang = 'python';
+let results = {};
+
+const langNames = {
+  python:'Python', javascript:'JavaScript', typescript:'TypeScript',
+  java:'Java', 'c++':'C++', c:'C', rust:'Rust', go:'Go',
+  react:'React (JSX)', vue:'Vue.js', swift:'Swift', kotlin:'Kotlin',
+  dart:'Dart/Flutter', 'c#':'C#', php:'PHP', ruby:'Ruby',
+  scala:'Scala', r:'R', bash:'Bash/Shell', sql:'SQL'
+};
+
+// ── Check backend connection on load ──
+async function checkConnection() {
+  try {
+    const r = await fetch('/ping');
+    if (r.ok) {
+      document.getElementById('connDot').style.background = 'var(--v2b)';
+      document.getElementById('connTxt').textContent = 'Connected to Python backend';
+    } else { throw new Error(); }
+  } catch {
+    document.getElementById('connDot').style.background = 'var(--v4)';
+    document.getElementById('connTxt').textContent = 'Backend not running — run: python app.py';
+  }
+}
+checkConnection();
+
+function onLangChange(sel) {
+  lang = sel.value;
+  document.getElementById('ddFlag').textContent = sel.options[sel.selectedIndex].dataset.icon || '💻';
+}
+
+function setEx(btn) {
+  document.getElementById('prompt').value = btn.textContent.trim();
+  document.getElementById('prompt').focus();
+}
+
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.dataset.t === t));
+  document.querySelectorAll('.pane').forEach(el => el.classList.toggle('active', el.id === 'pane-' + t));
+}
+
+function setNode(n, state) {
+  document.getElementById('n' + n).className = 'p-node' + (state ? ' ' + state : '');
+  if (n > 1) document.getElementById('l' + (n-1)).className = 'p-line' + (state === 'done' ? ' lit' : '');
+}
+
+function setStatus(type, txt) {
+  document.getElementById('sdot').className = 'sdot' + (type === 'busy' ? ' busy' : type === 'err' ? ' err' : '');
+  document.getElementById('stxt').textContent = txt;
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderSeg(paneId, cardCls, iconCls, icon, title, tagCls, tag, content) {
+  const pane = document.getElementById(paneId);
+  const em = pane.querySelector('.empty');
+  if (em) em.remove();
+
+  const codeRx = /```(\w*)\n?([\s\S]*?)```/g;
+  let bodyHtml = '', last = 0, m;
+  while ((m = codeRx.exec(content)) !== null) {
+    if (m.index > last) bodyHtml += `<span>${esc(content.slice(last, m.index))}</span>`;
+    const lb = m[1] ? m[1].toUpperCase() : lang.toUpperCase();
+    bodyHtml += `<div class="code-wrap"><div class="code-head"><span class="code-lang-lbl">${esc(lb)}</span><button class="copy-btn" onclick="copyCode(this)"><i class="ti ti-copy" style="font-size:11px"></i> Copy</button></div><div class="code-blk">${esc(m[2])}</div></div>`;
+    last = m.index + m[0].length;
+  }
+  if (last < content.length) bodyHtml += `<span>${esc(content.slice(last))}</span>`;
+
+  const card = document.createElement('div');
+  card.className = `seg ${cardCls}`;
+  card.innerHTML = `<div class="seg-head"><div class="seg-icon ${iconCls}">${icon}</div><div class="seg-title">${title}</div><span class="seg-tag ${tagCls}">${tag}</span></div><div class="seg-body">${bodyHtml}</div>`;
+  pane.appendChild(card);
+  pane.scrollTop = pane.scrollHeight;
+}
+
+function copyCode(btn) {
+  const blk = btn.closest('.code-wrap').querySelector('.code-blk');
+  navigator.clipboard.writeText(blk.textContent).then(() => {
+    btn.innerHTML = '✓ Copied';
+    setTimeout(() => { btn.innerHTML = '<i class="ti ti-copy" style="font-size:11px"></i> Copy'; }, 1500);
+  });
+}
+
+function resetPanes() {
+  const cfg = {
+    plan:  {icon:'ti-clipboard-list', t:'Plan will appear here',          s:'Enter a request and click Generate'},
+    design:{icon:'ti-vector-triangle',t:'Architecture will appear here',   s:'Runs after Planning completes'},
+    code:  {icon:'ti-code',           t:'Generated code will appear here', s:'Runs after Design completes'},
+    tests: {icon:'ti-test-pipe',      t:'Test cases will appear here',     s:'Runs after Code completes'},
+  };
+  for (const [k,v] of Object.entries(cfg)) {
+    document.getElementById('pane-'+k).innerHTML = `<div class="empty"><i class="ti ${v.icon}"></i><div class="empty-t">${v.t}</div><div class="empty-s">${v.s}</div></div>`;
+  }
+}
+
+async function generate() {
+  const p = document.getElementById('prompt').value.trim();
+  if (!p) { alert('Please enter a request first.'); return; }
+
+  const L   = langNames[lang] || lang;
+  const btn = document.getElementById('genBtn');
+
+  resetPanes();
+  [1,2,3,4].forEach(n => setNode(n, ''));
+  ['l1','l2','l3'].forEach(id => document.getElementById(id).className = 'p-line');
+  document.getElementById('saveBtn').style.display = 'none';
+  btn.classList.add('loading');
+  btn.disabled = true;
+  results = {};
+
+  try {
+    // Activate all steps as running
+    setNode(1, 'active');
+    setStatus('busy', 'All 4 agents running — please wait 30–60 seconds...');
+    switchTab('plan');
+
+    // Call Python backend
+    const res = await fetch('/generate', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({request: p, language: lang})
+    });
+
+    if (!res.ok) {
+      const e = await res.json();
+      throw new Error(e.error || 'Server error ' + res.status);
+    }
+
+    const data = await res.json();
+
+    // Show results tab by tab with small delay so user sees the animation
+    results.plan = data.plan;
+    renderSeg('pane-plan','plan-seg','plan-icon','📋','Planning Agent','plan-tag','✓ COMPLETE', results.plan);
+    setNode(1,'done');
+    switchTab('plan');
+    await new Promise(r => setTimeout(r, 400));
+
+    setNode(2,'active');
+    results.design = data.design;
+    renderSeg('pane-design','design-seg','design-icon','📐','Designing Agent','design-tag','✓ COMPLETE', results.design);
+    setNode(2,'done');
+    switchTab('design');
+    await new Promise(r => setTimeout(r, 400));
+
+    setNode(3,'active');
+    results.code = data.code;
+    renderSeg('pane-code','code-seg','code-icon','💻',`Creating Agent · ${L}`,'code-tag','✓ COMPLETE', results.code);
+    setNode(3,'done');
+    switchTab('code');
+    await new Promise(r => setTimeout(r, 400));
+
+    setNode(4,'active');
+    results.tests = data.tests;
+    renderSeg('pane-tests','test-seg','test-icon','🧪','Testing Agent','test-tag','✓ COMPLETE', results.tests);
+    setNode(4,'done');
+    switchTab('tests');
+
+    setStatus('ready', '🎉 All 4 agents completed — your code is ready!');
+    document.getElementById('saveBtn').style.display = 'flex';
+
+  } catch (err) {
+    setStatus('err', '❌ Error: ' + err.message);
+    // Show error in pane
+    const pane = document.getElementById('pane-plan');
+    const em = pane.querySelector('.empty');
+    if (em) em.remove();
+    const errDiv = document.createElement('div');
+    errDiv.className = 'err-box';
+    errDiv.innerHTML = `❌ <strong>Error:</strong> ${esc(err.message)}<br><br>Make sure:<br>• python app.py is running in terminal<br>• Your .env file has GROQ_API_KEY=gsk_...`;
+    pane.appendChild(errDiv);
+    switchTab('plan');
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+function saveOutput() {
+  const L = langNames[lang] || lang;
+  const sep = '='.repeat(50);
+  const txt = `MULTI-AGENT CODE GENERATOR\n${sep}\nLanguage: ${L}\n\nPLAN\n${sep}\n${results.plan}\n\nDESIGN\n${sep}\n${results.design}\n\nCODE\n${sep}\n${results.code}\n\nTESTS\n${sep}\n${results.tests}`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
+  a.download = 'generated_output.txt';
+  a.click();
+}
+</script>
+</body>
+</html>
